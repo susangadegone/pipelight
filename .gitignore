@@ -13,3 +13,7 @@ node_modules/
 next-env.d.ts
 *.tsbuildinfo
 *.code-workspace
+
+# macOS/iCloud sync duplicates
+* 2
+* 2.*
