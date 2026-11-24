@@ -1,4 +1,4 @@
-import { enabled, fp, ingest, status, ensureAccount, type MeterEvent } from "@/lib/flexprice";
+import { enabled, fp, charge, status, ensureAccount, type MeterEvent } from "@/lib/flexprice";
 
 const CLIENT_METERED: MeterEvent[] = ["outreach_sent", "graph_query"];
 
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
 
     if (action === "meter") {
       if (!CLIENT_METERED.includes(event)) return Response.json({ error: "Unknown meter" }, { status: 400 });
-      await ingest(ws, event, properties ?? {});
+      await charge(ws, event, properties ?? {});
     } else if (action === "topup") {
       const { wallet } = await ensureAccount(ws);
       const n = Math.min(500, Math.max(1, Number(credits) || 50));

@@ -1,5 +1,5 @@
 import { errorResponse } from "@/lib/claude";
-import { enabled as billingEnabled, ingest, status, METERS } from "@/lib/flexprice";
+import { enabled as billingEnabled, charge, status, METERS } from "@/lib/flexprice";
 
 // Contact enrichment via Hunter.io domain search (1 search credit per call).
 export async function POST(req: Request) {
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
         };
       });
 
-    if (billingEnabled() && ws) await ingest(ws, "lead_enriched", { domain, contacts: String(people.length) }).catch((e) => console.error(e));
+    if (billingEnabled() && ws) await charge(ws, "lead_enriched", { domain, contacts: String(people.length) }).catch((e) => console.error(e));
 
     return Response.json({
       people,

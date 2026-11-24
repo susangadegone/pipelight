@@ -31,7 +31,7 @@ export async function fp<T = unknown>(path: string, init: { method?: string; bod
 const customerExternalId = (ws: string) => `pipelight-ws-${ws.replace(/[^a-z0-9-]/gi, "").slice(0, 40)}`;
 
 type Customer = { id: string; external_id: string };
-type Wallet = { id: string; credit_balance?: string | number; balance?: string | number; wallet_status?: string };
+type Wallet = { id: string; credit_balance?: string | number; balance?: string | number; wallet_status?: string; metadata?: Record<string, string> };
 
 /** Ensure a Flexprice customer + prepaid wallet (seeded with free credits) exists for this workspace. */
 export async function ensureAccount(ws: string): Promise<{ customer: Customer; wallet: Wallet }> {
@@ -99,9 +99,19 @@ export async function walletCredits(walletId: string): Promise<number> {
   return Number(b.credit_balance ?? b.real_time_credit_balance ?? 0);
 }
 
+/** Charge credits for a metered action: update the wallet's credit ledger (read-after-write consistent), then send the usage event. */
+export async function charge(ws: string, event: MeterEvent, properties: Record<string, string> = {}) {
+  const { wallet } = await ensureAccount(ws);
+  const current = await fp<Wallet>(`/wallets/${wallet.id}`);
+  const used = Number(current.metadata?.credits_used ?? 0) + METERS[event].credits;
+  await fp(`/wallets/${wallet.id}`, { method: "PUT", body: { metadata: { ...(current.metadata ?? {}), credits_used: String(used) } } });
+  await ingest(ws, event, properties);
+}
+
 export async function status(ws: string) {
   const { customer, wallet } = await ensureAccount(ws);
-  const [granted, used] = await Promise.all([walletCredits(wallet.id), usage(ws)]);
-  const consumed = (Object.keys(used) as MeterEvent[]).reduce((s, k) => s + used[k] * METERS[k].credits, 0);
+  const [granted, current, used] = await Promise.all([walletCredits(wallet.id), fp<Wallet>(`/wallets/${wallet.id}`), usage(ws).catch(() => ({ lead_enriched: 0, outreach_sent: 0, graph_query: 0 }))]);
+  // Ledger (authoritative, consistent) for enforcement; meter usage (eventually consistent) for reporting.
+  const consumed = Number(current.metadata?.credits_used ?? 0);
   return { customerId: customer.id, walletId: wallet.id, granted, used, consumed, remaining: Math.max(0, granted - consumed), meters: METERS, usdPerCredit: USD_PER_CREDIT };
 }

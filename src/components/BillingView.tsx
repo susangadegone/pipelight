@@ -69,10 +69,10 @@ export default function BillingView() {
                   <td>{usd((b.used[k] ?? 0) * m.credits)}</td>
                 </tr>
               ))}
-              <tr className="border-t border-line font-semibold"><td className="py-2">Total consumed</td><td /><td /><td>{b.consumed}</td><td>{usd(b.consumed)}</td></tr>
+              <tr className="border-t border-line font-semibold"><td className="py-2">Wallet ledger (enforced)</td><td /><td /><td>{b.consumed}</td><td>{usd(b.consumed)}</td></tr>
             </tbody>
           </table>
-          <p className="mt-2 text-[11px] text-muted">Flexprice aggregates usage asynchronously; counts can trail by a few seconds.</p>
+          <p className="mt-2 text-[11px] text-muted">Meter counts come from Flexprice’s async aggregation and can trail by a few seconds; the wallet ledger used for enforcement updates instantly.</p>
         </div>
       </div>
 
