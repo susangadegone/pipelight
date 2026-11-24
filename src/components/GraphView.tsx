@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { useStore } from "@/lib/store";
 import { SectionTitle } from "./ui";
+import { billing } from "@/lib/actions";
 
 type Node = { id: string; label: string; kind: "Product" | "Company" | "Person" | "Signal" | "Competitor"; x: number; y: number; r: number; color: string };
 type Edge = { from: string; to: string; rel: string };
@@ -86,7 +87,7 @@ export default function GraphView() {
               const dim = sel && n.id !== sel && !neighbors.has(n.id);
               const showLabel = n.kind === "Company" || n.kind === "Product" || n.kind === "Competitor" || n.id === sel || neighbors.has(n.id);
               return (
-                <g key={n.id} onClick={() => setSel(sel === n.id ? null : n.id)} className="cursor-pointer" opacity={dim ? 0.2 : 1}>
+                <g key={n.id} onClick={() => { if (sel !== n.id) billing("meter", { event: "graph_query", properties: { node: n.kind } }); setSel(sel === n.id ? null : n.id); }} className="cursor-pointer" opacity={dim ? 0.2 : 1}>
                   <circle cx={n.x} cy={n.y} r={n.r} fill={n.color} stroke="white" strokeWidth={2} />
                   {showLabel && (
                     <text x={n.x} y={n.y - n.r - 4} fontSize={n.kind === "Company" ? 12 : 10} textAnchor="middle" fill="#1a1a17" fontWeight={n.kind === "Company" ? 600 : 400}>

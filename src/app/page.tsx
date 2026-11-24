@@ -9,11 +9,13 @@ import Review from "@/components/Review";
 import Pipeline from "@/components/Pipeline";
 import Analytics from "@/components/Analytics";
 import Why from "@/components/Why";
+import BillingView, { CreditMeter } from "@/components/BillingView";
+import { billing } from "@/lib/actions";
 
-const TABS = ["Intake", "ICP", "Leads", "Graph", "Review", "Pipeline", "Analytics", "Why Pipelight"] as const;
+const TABS = ["Intake", "ICP", "Leads", "Graph", "Review", "Pipeline", "Analytics", "Billing", "Why Pipelight"] as const;
 type Tab = (typeof TABS)[number];
 
-const AGENT_COLOR: Record<string, string> = { Planner: "text-accent", Builder: "text-ai", Reviewer: "text-rep", System: "text-rose-600" };
+const AGENT_COLOR: Record<string, string> = { Billing: "text-amber-600", Planner: "text-accent", Builder: "text-ai", Reviewer: "text-rep", System: "text-rose-600" };
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -21,7 +23,10 @@ export default function Home() {
   const [showThinking, setShowThinking] = useState(true);
   const s = useStore();
   const feedRef = useRef<HTMLDivElement>(null);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    billing("status");
+  }, []);
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight, behavior: "smooth" });
   }, [s.thinking.length]);
@@ -33,7 +38,7 @@ export default function Home() {
     Review: pending || undefined,
     Pipeline: s.leads.filter((l) => l.stage !== "Matched").length || undefined,
   };
-  const enabled = (t: Tab) => t === "Intake" || t === "Why Pipelight" || (t === "ICP" ? !!s.icp : s.leads.length > 0);
+  const enabled = (t: Tab) => t === "Intake" || t === "Why Pipelight" || t === "Billing" || (t === "ICP" ? !!s.icp : s.leads.length > 0);
 
   return (
     <div className="flex h-full">
@@ -55,7 +60,9 @@ export default function Home() {
             </button>
           ))}
         </nav>
-        <div className="mt-auto space-y-2 text-xs text-muted">
+        <div className="mt-auto" />
+        <CreditMeter />
+        <div className="space-y-2 text-xs text-muted">
           <button className="hover:text-ink" onClick={() => setShowThinking(!showThinking)}>{showThinking ? "Hide" : "Show"} agent thinking</button>
           <br />
           <button className="hover:text-rose-600" onClick={() => confirm("Clear all data and start over?") && (s.reset(), setTab("Intake"))}>Reset workspace</button>
@@ -76,6 +83,7 @@ export default function Home() {
         {tab === "Pipeline" && <Pipeline />}
         {tab === "Analytics" && <Analytics />}
         {tab === "Why Pipelight" && <Why />}
+        {tab === "Billing" && <BillingView />}
       </main>
 
       {showThinking && (

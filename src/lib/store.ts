@@ -4,6 +4,18 @@ import { persist } from "zustand/middleware";
 import type { Actor, AuditEvent, Competitor, Draft, ICP, Lead, Person, Stage, ThinkingStep } from "./types";
 
 export type Intake = { product: string; customers: string; pricing: string };
+export type Billing = {
+  enabled: boolean;
+  granted: number;
+  consumed: number;
+  remaining: number;
+  used: Record<string, number>;
+  meters: Record<string, { name: string; credits: number }>;
+  usdPerCredit: number;
+  walletId?: string;
+  customerId?: string;
+  error?: string;
+};
 
 type State = {
   intake: Intake;
@@ -14,6 +26,9 @@ type State = {
   audit: AuditEvent[];
   thinking: ThinkingStep[];
   busy: string | null;
+  workspaceId: string;
+  billing: Billing | null;
+  setBilling: (b: Billing | null) => void;
   setIntake: (i: Partial<Intake>) => void;
   setIcp: (icp: ICP | null) => void;
   setExpansion: (id: string, status: "accepted" | "dismissed" | "suggested") => void;
@@ -29,12 +44,14 @@ type State = {
 };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
-const empty = { intake: { product: "", customers: "", pricing: "" }, icp: null, leads: [], competitors: [], drafts: [], audit: [], thinking: [], busy: null };
+const empty = { billing: null as Billing | null, intake: { product: "", customers: "", pricing: "" }, icp: null, leads: [], competitors: [], drafts: [], audit: [], thinking: [], busy: null };
 
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
       ...empty,
+      workspaceId: Math.random().toString(36).slice(2) + Date.now().toString(36),
+      setBilling: (billing) => set({ billing }),
       setIntake: (i) => set({ intake: { ...get().intake, ...i } }),
       setIcp: (icp) => set({ icp }),
       setExpansion: (id, status) => {
@@ -59,7 +76,7 @@ export const useStore = create<State>()(
         set({ audit: [{ id: uid(), ts: Date.now(), actor, action, detail, leadId }, ...get().audit].slice(0, 500) }),
       think: (agent, text) => set({ thinking: [...get().thinking, { id: uid(), ts: Date.now(), agent, text }].slice(-200) }),
       setBusy: (busy) => set({ busy }),
-      reset: () => set({ ...empty }),
+      reset: () => set({ ...empty, billing: get().billing }),
     }),
     { name: "pipelight-v1", partialize: (s) => ({ ...s, busy: null }) },
   ),

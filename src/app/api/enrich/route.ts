@@ -1,12 +1,20 @@
 import { errorResponse } from "@/lib/claude";
+import { enabled as billingEnabled, ingest, status, METERS } from "@/lib/flexprice";
 
 // Contact enrichment via Hunter.io domain search (1 search credit per call).
 export async function POST(req: Request) {
   try {
-    const { domain, personaKeywords } = (await req.json()) as { domain: string; personaKeywords?: string[] };
+    const { domain, personaKeywords, ws } = (await req.json()) as { domain: string; personaKeywords?: string[]; ws?: string };
     if (!domain) return Response.json({ error: "No domain to enrich." }, { status: 400 });
     const key = process.env.HUNTER_API_KEY;
     if (!key) return Response.json({ error: "HUNTER_API_KEY not set" }, { status: 501 });
+
+    // Credit gate (Flexprice): block the high-cost enrichment pipeline when the wallet can't cover it.
+    if (billingEnabled() && ws) {
+      const s = await status(ws);
+      if (s.remaining < METERS.lead_enriched.credits)
+        return Response.json({ error: `Out of credits: enrichment needs ${METERS.lead_enriched.credits}, ${s.remaining} left. Top up in Billing.`, code: "insufficient_credits", billing: s }, { status: 402 });
+    }
 
     const url = new URL("https://api.hunter.io/v2/domain-search");
     url.searchParams.set("domain", domain);
@@ -46,6 +54,8 @@ export async function POST(req: Request) {
           source: e.sources?.[0] ? { url: e.sources[0].uri, title: "Hunter.io public source" } : { url: `https://hunter.io/search/${domain}`, title: "Hunter.io" },
         };
       });
+
+    if (billingEnabled() && ws) await ingest(ws, "lead_enriched", { domain, contacts: String(people.length) }).catch((e) => console.error(e));
 
     return Response.json({
       people,

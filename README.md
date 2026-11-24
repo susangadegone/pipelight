@@ -25,6 +25,8 @@ Early-stage B2B teams stitch together a strategy deck, Google searches, Apollo, 
 | 8. Graph | Company / Person / Signal / Competitor / Product nodes; `matched_to`, `works_at`, `has_signal`, `competes_with`, `uses`, `contacted_via` edges. Multi-hop insights: competitor displacement, co-mentioned accounts, signal clusters | — |
 | 9. Analytics | Funnel conversion, conversion by industry and by tier/size, A/B variant reply rates, AI vs rep action counts, full timestamped audit log | — |
 
+| 10. Usage billing | Every enrichment (5 credits), sent message (1) and graph query (1) is a metered event in **Flexprice**. Each workspace gets a Flexprice customer and a prepaid wallet with 40 free credits. **Enrichment is blocked server-side (HTTP 402) when the wallet can't cover it.** The Billing tab shows live meter usage, top-ups through the Flexprice wallet API, and cost allocated per lead | Flexprice |
+
 A live **Agent Thinking** panel streams Planner → Builder → Reviewer steps as the engine works.
 
 ## Quick start
@@ -41,6 +43,7 @@ npm run dev                  # http://localhost:3000
 | `ANTHROPIC_API_KEY` | console.anthropic.com | Yes |
 | `TAVILY_API_KEY` | tavily.com (free tier) | Yes |
 | `HUNTER_API_KEY` | hunter.io (free tier: 50 searches/month) | For enrichment |
+| `FLEXPRICE_API_KEY` | app.flexprice.io → API Keys | For billing. Then run `node --env-file=.env.local scripts/flexprice-setup.mjs` once to create the meters |
 
 Click **Load example** on the intake screen for a ready-made dental-software product, or describe your own.
 
@@ -53,6 +56,6 @@ Click **Load example** on the intake screen for a ready-made dental-software pro
 
 ## Stack
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Zustand · Anthropic SDK (`claude-opus-5-5`, structured outputs via Zod) · Tavily Search API · Hunter.io API
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Zustand · Flexprice (usage billing) · Anthropic SDK (`claude-opus-5-5`, structured outputs via Zod) · Tavily Search API · Hunter.io API
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the system design, query logic, graph ontology and reasoning loops.

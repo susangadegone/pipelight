@@ -72,6 +72,14 @@ flowchart LR
 - **Attribution:** every action writes an `AuditEvent {ts, actor: ai|rep, action, detail, leadId}`. Kanban cards show who made the last stage change.
 - **Analytics:** stage-to-stage conversion, contact and reply rates by industry and by tier/size, and A/B reply rates per variant and angle.
 
+### 3.7 Usage-based billing (Flexprice)
+- **Meters:** three metered features with COUNT aggregation, created by `scripts/flexprice-setup.mjs`: `lead_enriched` (5 credits), `outreach_sent` (1 credit), `graph_query` (1 credit).
+- **Accounts:** on first visit, `/api/billing` creates a Flexprice customer (`external_id = pipelight-ws-<workspace>`) and a prepaid USD wallet seeded with 40 credits (`conversion_rate` $0.08 per credit).
+- **Ingestion:** `POST /events` from the server. `lead_enriched` is sent by `/api/enrich` after a successful lookup. `outreach_sent` is sent on approved dispatch and `graph_query` on node inspection.
+- **Enforcement:** before calling Hunter, `/api/enrich` computes `remaining = wallet credits granted − Σ(meter usage × unit credits)`, using `GET /wallets/{id}/balance/real-time` and `POST /events/usage/meter`. If remaining is below the enrichment price, it returns **402 `insufficient_credits`** and the expensive pipeline never runs.
+- **Top-up:** `POST /wallets/{id}/top-up` (a demo credit grant). **Cost allocation:** the Billing tab maps credits and dollars to each lead (enrichment plus messages sent).
+- Prepaid wallet drawdown through a Flexprice plan or subscription is the production next step. The prototype enforces the balance in-app from Flexprice's metered data.
+
 ## 4. Knowledge graph ontology
 
 | Node | Key properties |
@@ -125,5 +133,4 @@ Every step streams into the **Agent Thinking** panel.
 ## 7. Known limitations & next steps
 - Real dispatch (SendGrid or Gmail API) with webhooks for replies and bounces.
 - Persistent multi-user store (Postgres) and a native graph DB (Neo4j or Kùzu) with scheduled signal refresh.
-- Usage metering per enriched lead, sent message and graph query (Flexprice) with credit-gated enrichment.
 - Discovery currently takes about 1 minute; streaming partial results would improve perceived speed.

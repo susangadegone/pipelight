@@ -10,7 +10,7 @@ export default function Leads() {
   if (!leads.length) return <p className="text-muted">No leads yet. Approve an ICP to run discovery.</p>;
   const sorted = [...leads].sort((a, b) => b.fitScore - a.fitScore);
   const enrichTop = async () => {
-    for (const l of sorted.filter((l) => !l.enriched && l.domain).slice(0, 5)) await enrichLead(l.id);
+    for (const l of sorted.filter((l) => !l.enriched && l.domain).slice(0, 5)) if ((await enrichLead(l.id)) === false) break;
   };
   const th = "px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-muted";
   const td = "px-3 py-2.5 align-top";

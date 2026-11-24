@@ -2,6 +2,18 @@
 import { useStore, uid } from "./store";
 import { post } from "@/components/ui";
 import type { Competitor, Draft, ICP, Lead, Person } from "./types";
+import type { Billing } from "./store";
+
+export async function billing(action: "status" | "meter" | "topup", extra: Record<string, unknown> = {}) {
+  try {
+    const b = await post<Billing>("/api/billing", { ws: S().workspaceId, action, ...extra });
+    if (b.enabled === false) return S().setBilling({ enabled: false } as Billing);
+    S().setBilling({ ...b, enabled: true });
+    return b;
+  } catch (e) {
+    S().think("System", `Billing: ${(e as Error).message}`);
+  }
+}
 
 const S = () => useStore.getState();
 
@@ -58,9 +70,12 @@ export async function enrichLead(leadId: string) {
   think("Builder", `Enriching ${lead.domain} via Hunter.io domain search`);
   const keywords = (icp?.personas ?? []).flatMap((p) => p.title.toLowerCase().split(/[\s,/]+/)).filter((w) => w.length > 3);
   const res = await step(`Enriching ${lead.company}…`, () =>
-    post<{ people: Person[]; company: { hq?: string } }>("/api/enrich", { domain: lead.domain, personaKeywords: keywords }),
+    post<{ people: Person[]; company: { hq?: string } }>("/api/enrich", { domain: lead.domain, personaKeywords: keywords, ws: S().workspaceId }),
   );
-  if (!res) return;
+  if (!res) {
+    billing("status");
+    return false;
+  }
   // Merge: keep source-cited people from discovery, add Hunter contacts.
   const existing = lead.people.filter((p) => !res.people.some((h) => h.name.toLowerCase() === p.name.toLowerCase()));
   const people = [...res.people, ...existing];
@@ -68,6 +83,9 @@ export async function enrichLead(leadId: string) {
   const verified = res.people.filter((p) => p.emailStatus === "verified").length;
   think("Reviewer", `${lead.company}: ${res.people.length} contacts found, ${verified} verified emails`);
   log("ai", "Lead enriched", `${lead.company}: ${res.people.length} contacts, ${verified} verified`, leadId);
+  think("Billing", `Metered lead_enriched → Flexprice (5 credits)`);
+  billing("status");
+  return true;
 }
 
 export async function draftOutreach(leadId: string, personId?: string) {
@@ -108,6 +126,7 @@ export function approveAndSend(draftId: string) {
     .filter((x) => x.leadId === d.leadId && x.channel === d.channel && x.id !== d.id && x.status === "pending")
     .forEach((x) => updateDraft(x.id, { status: "rejected" }));
   if (lead && lead.stage === "Matched") moveLead(lead.id, "Contacted", "ai", "first touch sent after rep approval");
+  billing("meter", { event: "outreach_sent", properties: { channel: d.channel, variant: d.variant, lead: lead?.company ?? "" } }).then((b) => b && think("Billing", "Metered outreach_sent → Flexprice (1 credit)"));
 }
 
 export function rejectDraft(draftId: string) {
