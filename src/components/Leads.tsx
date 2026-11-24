@@ -5,7 +5,8 @@ import { draftOutreach, enrichLead } from "@/lib/actions";
 import { Button, EmailStatus, SectionTitle, SourceLink, TierBadge } from "./ui";
 
 export default function Leads() {
-  const { leads, competitors, busy, drafts } = useStore();
+  const { leads, competitors, busy, drafts, billing } = useStore();
+  const outOfCredits = !!billing?.enabled && !billing.error && billing.remaining < 5;
   const [open, setOpen] = useState<string | null>(null);
   if (!leads.length) return <p className="text-muted">No leads yet. Approve an ICP to run discovery.</p>;
   const sorted = [...leads].sort((a, b) => b.fitScore - a.fitScore);
@@ -17,8 +18,14 @@ export default function Leads() {
   return (
     <div>
       <SectionTitle kicker="Step 3 · Discovery & enrichment" title={`${leads.length} cited accounts`} sub="Every account is grounded in a retrieved web source. Click a row for signals, contacts and evidence." />
-      <div className="mb-3 flex gap-2">
-        <Button disabled={!!busy} onClick={enrichTop}>{busy ?? "Enrich top 5 (Hunter.io)"}</Button>
+      {outOfCredits && (
+        <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <b>Credits exhausted: enrichment paused.</b> Flexprice shows {billing!.remaining} credit{billing!.remaining === 1 ? "" : "s"} left; enriching a lead costs 5. Top up in Billing to continue.
+        </div>
+      )}
+      <div className="mb-3 flex items-center gap-3">
+        <Button disabled={!!busy || outOfCredits} onClick={enrichTop}>{busy ?? "Enrich top 5 (Hunter.io)"}</Button>
+        {billing?.enabled && !billing.error && <span className="text-xs text-muted tabular">{billing.remaining} credits left · 5 per enrichment</span>}
       </div>
       <div className="overflow-x-auto rounded-xl border border-line bg-white">
         <table className="w-full text-sm">

@@ -23,7 +23,7 @@ async function step<T>(busy: string, fn: () => Promise<T>): Promise<T | null> {
     return await fn();
   } catch (e) {
     S().think("System", `⚠ ${(e as Error).message}`);
-    alert((e as Error).message);
+    if (!/Out of credits/.test((e as Error).message)) alert((e as Error).message);
     return null;
   } finally {
     S().setBusy(null);
