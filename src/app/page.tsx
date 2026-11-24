@@ -8,8 +8,9 @@ import GraphView from "@/components/GraphView";
 import Review from "@/components/Review";
 import Pipeline from "@/components/Pipeline";
 import Analytics from "@/components/Analytics";
+import Why from "@/components/Why";
 
-const TABS = ["Intake", "ICP", "Leads", "Graph", "Review", "Pipeline", "Analytics"] as const;
+const TABS = ["Intake", "ICP", "Leads", "Graph", "Review", "Pipeline", "Analytics", "Why Pipelight"] as const;
 type Tab = (typeof TABS)[number];
 
 const AGENT_COLOR: Record<string, string> = { Planner: "text-accent", Builder: "text-ai", Reviewer: "text-rep", System: "text-rose-600" };
@@ -32,7 +33,7 @@ export default function Home() {
     Review: pending || undefined,
     Pipeline: s.leads.filter((l) => l.stage !== "Matched").length || undefined,
   };
-  const enabled = (t: Tab) => t === "Intake" || (t === "ICP" ? !!s.icp : s.leads.length > 0);
+  const enabled = (t: Tab) => t === "Intake" || t === "Why Pipelight" || (t === "ICP" ? !!s.icp : s.leads.length > 0);
 
   return (
     <div className="flex h-full">
@@ -74,6 +75,7 @@ export default function Home() {
         {tab === "Review" && <Review />}
         {tab === "Pipeline" && <Pipeline />}
         {tab === "Analytics" && <Analytics />}
+        {tab === "Why Pipelight" && <Why />}
       </main>
 
       {showThinking && (

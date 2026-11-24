@@ -4,6 +4,13 @@
 
 Early-stage B2B teams stitch together a strategy deck, Google searches, Apollo, ChatGPT, Gmail and a spreadsheet. Context is lost at every handoff, so targeting drifts and messages go generic. Pipelight keeps one context, from ICP to closed deal, and grounds every claim in a retrieved source.
 
+## Why it's a business
+
+- **Who buys:** seed to Series A B2B teams without RevOps, such as founders doing founder-led sales and first sales hires.
+- **Wedge:** trust. Every lead is cited (no source, no lead), every message is grounded in a real signal, and every send is human-approved. Autonomous AI SDRs skip that gate and risk the sender's domain. Apollo and Clay give you data but no reasoning. ChatGPT gives you copy but no live evidence.
+- **Model:** usage-based. Starter $149/mo (200 enriched leads), Growth $499/mo (1,000 leads, 3 seats), overage $0.40 per enriched lead.
+- **Unit economics (estimated):** about $0.10–0.25 in API cost per fully worked lead (discovery, enrichment and 3 drafts) against $0.40 in revenue.
+
 ## What it does
 
 | Step | What happens | Powered by |
