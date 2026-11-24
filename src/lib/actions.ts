@@ -11,7 +11,9 @@ export async function billing(action: "status" | "meter" | "topup", extra: Recor
     S().setBilling({ ...b, enabled: true });
     return b;
   } catch (e) {
-    S().think("System", `Billing: ${(e as Error).message}`);
+    // Background status checks retry on the next action; only surface user-initiated failures.
+    if (action !== "status") S().think("System", `Billing: ${(e as Error).message}`);
+    else console.warn("billing status", e);
   }
 }
 

@@ -41,18 +41,36 @@ export async function ensureAccount(ws: string): Promise<{ customer: Customer; w
     customer = await fp<Customer>(`/customers/external/${encodeURIComponent(ext)}`);
   } catch (e) {
     if ((e as { status?: number }).status !== 404) throw e;
-    customer = await fp<Customer>("/customers", { method: "POST", body: { external_id: ext, name: `Pipelight workspace ${ws.slice(0, 8)}` } });
+    try {
+      customer = await fp<Customer>("/customers", { method: "POST", body: { external_id: ext, name: `Pipelight workspace ${ws.slice(0, 8)}` } });
+    } catch (err) {
+      // A concurrent first request may have created it already.
+      if ((err as { status?: number }).status !== 409) throw err;
+      customer = await fp<Customer>(`/customers/external/${encodeURIComponent(ext)}`);
+    }
   }
   const list = await fp<Wallet[] | { items?: Wallet[] }>(`/customers/${customer.id}/wallets`);
   const wallets = Array.isArray(list) ? list : (list.items ?? []);
   let wallet = wallets.find((w) => (w.wallet_status ?? "active").toLowerCase() === "active");
   if (!wallet) {
-    wallet = await fp<Wallet>("/wallets", {
-      method: "POST",
-      body: { customer_id: customer.id, currency: "usd", wallet_type: "PRE_PAID", conversion_rate: String(USD_PER_CREDIT), initial_credits_to_load: String(FREE_CREDITS), description: "Pipelight credits" },
-    });
+    wallet = await createWallet(customer.id);
   }
   return { customer, wallet };
+}
+
+async function createWallet(customerId: string): Promise<Wallet> {
+  try {
+    return await fp<Wallet>("/wallets", {
+      method: "POST",
+      body: { customer_id: customerId, currency: "usd", wallet_type: "PRE_PAID", conversion_rate: String(USD_PER_CREDIT), initial_credits_to_load: String(FREE_CREDITS), description: "Pipelight credits" },
+    });
+  } catch (err) {
+    // Concurrent first request created the wallet; use that one.
+    const list = await fp<Wallet[] | { items?: Wallet[] }>(`/customers/${customerId}/wallets`);
+    const w = (Array.isArray(list) ? list : (list.items ?? []))[0];
+    if (!w) throw err;
+    return w;
+  }
 }
 
 export async function ingest(ws: string, event: MeterEvent, properties: Record<string, string> = {}) {
